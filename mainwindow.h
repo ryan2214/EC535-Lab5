@@ -81,8 +81,9 @@ public:
     MainWindow();
     void paintEvent(QPaintEvent *event) override;
     void InitGame();
-    QRect CreateRect();
-
+    QRect CreateRect(int x,int y);
+    void spawnMob(int);
+    int isBlock();
 protected:
 //! [0]
 
@@ -113,6 +114,7 @@ private:
     bool IsOver = false;
     player currentPlayer;
     QVector<mob> mob_list;
+    QVector<QRect> rec_Mob;
     QVector<bbbitem> ground_items;
 
 

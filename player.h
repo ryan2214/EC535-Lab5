@@ -4,6 +4,7 @@
 #include "bbbitem.h"
 class player{
 public:
+    player();
     player(QString name,int roleClass, int level, bbbitem wieldWeapon, QVector<bbbitem> backpackItems, int cash, int x,int y);
     QString get_name();
     int get_class(); // 0: Knight  1: Healer  3: Wizard
@@ -23,6 +24,8 @@ public:
     int get_atk(); // read from w_weapon's attr
     int get_bonus_atk();
     int atk_roll();
+    void move(int dir,int dis);
+
     QVector<bbbitem> get_backpack();
 private:
     QString name;

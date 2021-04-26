@@ -73,7 +73,7 @@ MainWindow::MainWindow()
     layout->addWidget(bottomFiller);
     widget->setLayout(layout);
 //! [1]
-
+    currentPlayer = player(); // man with a long_sword
 //! [2]
     createActions();
     createMenus();
@@ -100,15 +100,21 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.setFont(font2);
     painter.setPen(Qt::white);
     painter.setBrush(Qt::blue);
-    QString statusStr = sStepLabel;
+    QString statusStr = "X: ";
+    statusStr.append(QString::number(currentPlayer.get_x()));
+    statusStr.append(" Y: ");
+    statusStr.append(QString::number(currentPlayer.get_y()));
+    statusStr.append(" Steps: ");
     statusStr.append(QString::number(step));
     painter.drawText(10,260,statusStr);
     //painter.drawText(100,200,QString::number(step));
     //draw
     painter.setBrush(Qt::green);
     painter.setPen(Qt::black);
-    painter.drawRect(recTemp);
     painter.drawRect(recPlayer);
+    painter.setBrush(Qt::red);
+    for(QRect r:rec_Mob)
+        painter.drawRect(r);
     if(IsOver)
     {
         timer->stop();
@@ -124,7 +130,7 @@ void MainWindow::InitGame()
     step = 0;
     IsStart = true;
     IsOver = false;
-    recTemp = CreateRect();
+    spawnMob(1);//spawn 1 slime
     QRect rect(80,50,10,10);
     recPlayer = rect;
     speed = 100;
@@ -136,54 +142,74 @@ void MainWindow::game_update()
 {
     sDisplay = "";
 
-    //do all the checks
-
-    switch(moveDirection)
-    {
-        case 0: break;
-        case 1:{
-            recPlayer.setHeight(recPlayer.height()-10);
-            recPlayer.setTop(recPlayer.top()-10);
-            lastDirection = 1;
-            step++;
-            moveDirection = 0;
-        }break;
-        case 2:{
-            recPlayer.setHeight(recPlayer.height()+10);
-            recPlayer.setTop(recPlayer.top()+10);
-            lastDirection = 2;
-            step++;
-            moveDirection = 0;
-        }break;
-        case 3:{
-            recPlayer.setLeft(recPlayer.left()-10);
-            recPlayer.setRight(recPlayer.right()-10);
-            lastDirection = 3;
-            step++;
-            moveDirection = 0;
-        }break;
-        case 4:{
-            recPlayer.setLeft(recPlayer.left()+10);
-            recPlayer.setRight(recPlayer.right()+10);
-            lastDirection = 4;
-            step++;
-            moveDirection = 0;
-        }break;
-        default :
-        ;
+    // if nothing block the player
+    if(isBlock()==0){
+        switch(moveDirection)
+        {
+            case 0: break;
+            case 1:{
+                recPlayer.setHeight(recPlayer.height()-10);
+                recPlayer.setTop(recPlayer.top()-10);
+                currentPlayer.move(1,10);
+                lastDirection = 1;
+                step++;
+                moveDirection = 0;
+            }break;
+            case 2:{
+                recPlayer.setHeight(recPlayer.height()+10);
+                recPlayer.setTop(recPlayer.top()+10);
+                currentPlayer.move(2,10);
+                lastDirection = 2;
+                step++;
+                moveDirection = 0;
+            }break;
+            case 3:{
+                recPlayer.setLeft(recPlayer.left()-10);
+                recPlayer.setRight(recPlayer.right()-10);
+                currentPlayer.move(3,10);
+                lastDirection = 3;
+                step++;
+                moveDirection = 0;
+            }break;
+            case 4:{
+                recPlayer.setLeft(recPlayer.left()+10);
+                recPlayer.setRight(recPlayer.right()+10);
+                currentPlayer.move(4,10);
+                lastDirection = 4;
+                step++;
+                moveDirection = 0;
+            }break;
+            default :
+            ;
+        }
     }
+
 
     // if game over, set IsOver = true
     update();//paintEvent update
 }
 
-QRect MainWindow::CreateRect()//generate random rect
+QRect MainWindow::CreateRect(int x, int y)//generate random rect
 {
-    int x,y;
-    x = qrand()%42;
-    y = qrand()%18;
-    QRect rect(20+x*10,40+y*10,10,10); // in the (10,35,460,227)
+    QRect rect(x,y,10,10); // in the (10,35,460,227)
     return rect;
+}
+
+void MainWindow::spawnMob(int m_class){
+    int x = qrand()%42;
+    int y = qrand()%18;
+    x = 20+x*10;
+    y = 40+y*10;
+    while(x==currentPlayer.get_x()&&y==currentPlayer.get_y()){
+        x = qrand()%42;
+        y = qrand()%18;
+        x = 20+x*10;
+        y = 40+y*10;
+    }// dont let mob spawn at the pos of player
+    QRect r = CreateRect(x,y);
+    rec_Mob.push_back(r);
+    mob m = mob("slime",m_class, 1, 2, 5, x, y);
+    mob_list.push_back(m);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
@@ -251,3 +277,41 @@ void MainWindow::createMenus()
 
 }
 //! [12]
+int MainWindow::isBlock()
+{
+    //check boundary
+    int x = currentPlayer.get_x();
+    int y = currentPlayer.get_y();
+
+    switch(moveDirection){
+    case 1:{
+        if(y<=30)
+            return 1;
+        y-=10;
+    }break;
+    case 2:{
+        if(y>=250)
+            return 1;
+        y+=10;
+    }break;
+    case 3:{
+        if(x<=10)
+            return 1;
+        x-=10;
+    }break;
+    case 4:{
+        if(x>=460)
+            return 1;
+        x+=10;
+    }break;
+    default:break;
+    }
+
+    //check if run into mob
+    for (mob m : mob_list) {
+        if(x==m.get_x()&&y==m.get_y())
+            return 2;          // blocked by mob
+    }
+
+    return 0; // non-block
+}

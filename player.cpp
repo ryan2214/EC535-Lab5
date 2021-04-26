@@ -1,6 +1,17 @@
 #include "player.h"
 #include "bbbitem.h"
 
+player::player(){
+    name = "A";
+    p_class = 0;
+    p_level = 1;
+    w_weapon = bbbitem("long_sword", 0,8, 0, 40);
+    b_pack.push_back(w_weapon);
+    cash = 0;
+    x_pos = 80;
+    y_pos = 50;
+}
+
 player::player(QString n,int roleClass, int level, bbbitem wieldWeapon, QVector<bbbitem> backpackItems, int c, int x,int y){
     name = n;
     p_class = roleClass;
@@ -75,4 +86,22 @@ int player::atk_roll(){
 }
 QVector<bbbitem> player::get_backpack(){
     return b_pack;
+}
+
+void player::move(int dir,int dis){
+    switch (dir) {
+    case 1:{
+        y_pos-=dis;
+    }break;
+    case 2:{
+        y_pos+=dis;
+    }break;
+    case 3:{
+        x_pos-=dis;
+    }break;
+    case 4:{
+        x_pos+=dis;
+    }break;
+    default:break;
+    }
 }

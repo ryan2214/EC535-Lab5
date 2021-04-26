@@ -41,6 +41,12 @@ void mob::set_x(int x){
 void mob::set_y(int y){
     y_pos = y;
 }
+int mob::get_x(){
+    return x_pos;
+}
+int mob::get_y(){
+    return y_pos;
+}
 void mob::rand_x(int l_b, int u_b){
     x_pos = l_b + qrand()%u_b;
 }
