@@ -97,6 +97,7 @@ public:
     void player_move();
     void mob_move();
     void d_map_init(int xscale,int yscale);
+    void d_map_draw(QPainter*);
 
 protected:
 //! [0]

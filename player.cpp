@@ -143,27 +143,6 @@ void player::move(int dir,int dis){
     default:break;
     }
 }
-void player::move_pos(int dir,int dis){
-    switch (dir) {
-    case 1:{
-        y_pos-=dis;
-        set_face_dir(1);
-    }break;
-    case 2:{
-        y_pos+=dis;
-        set_face_dir(2);
-    }break;
-    case 3:{
-        x_pos-=dis;
-        set_face_dir(3);
-    }break;
-    case 4:{
-        x_pos+=dis;
-        set_face_dir(4);
-    }break;
-    default:break;
-    }
-}
 
 void player::set_face_dir(int dir){
     face_dir = dir;

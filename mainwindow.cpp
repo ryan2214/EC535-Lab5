@@ -88,14 +88,14 @@ MainWindow::MainWindow()
             for(int y=0;y<map_y;y++){
                 if(*iter=='\n')
                     iter++;
-                d_map[x][y]=(*iter).digitValue();
+                d_map[x][y]=QString((*iter)).toInt(); // .digitValue()
             }
         }
 
 //! [2]
     createActions();
     createMenus();
-    setWindowTitle(tr("Nethack Lite"));
+    setWindowTitle(tr("NetSnake"));
     setMinimumSize(160, 160);
     resize(480,272);
 
@@ -103,7 +103,7 @@ MainWindow::MainWindow()
     username = QInputDialog::getText(this,"Name","What's your name?",QLineEdit::Normal,"",&bOk);
     if (bOk && username!="") {
         currentPlayer = player(username); // man with a long_sword
-    }else if(bOk){
+    }else if(bOk && username==""){
         currentPlayer = player("nobody");
     }
 }
@@ -120,6 +120,7 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.setPen(Qt::black);
     painter.setBrush(Qt::black);
     painter.drawRect(5,30,screenXWidth,screenYWidth);
+    d_map_draw(&painter);
     // draw status
     generateStatusStr(); // prepare statusStr
     QFont font2("Courier",10);
@@ -136,11 +137,7 @@ void MainWindow::paintEvent(QPaintEvent *)
         voiceover_linepos+=voiceover_interval;
         transparent+=30;
     }
-    QString pos = "X: ";
-    pos.append(QString::number(currentPlayer.get_x()/10));
-    pos.append(" Y: ");
-    pos.append(QString::number(currentPlayer.get_y()/10));
-    painter.drawText(340,voiceover_height,pos);
+
     // draw player
     switch(currentPlayer.get_class()){
         case 0:painter.setBrush(QColor(255,192,203));break;
@@ -150,8 +147,8 @@ void MainWindow::paintEvent(QPaintEvent *)
     }
     painter.setPen(Qt::black);
     QRect t = currentPlayer.get_rect();
-    t.setHeight(t.height()-screenAnchorY);
-    t.setTop(t.top()-screenAnchorY);
+    t.setHeight(t.height()-screenAnchorY+30);
+    t.setTop(t.top()-screenAnchorY+30);
     t.setLeft(t.left()-screenAnchorX);
     t.setRight(t.right()-screenAnchorX);
     painter.drawRect(t);
@@ -166,8 +163,8 @@ void MainWindow::paintEvent(QPaintEvent *)
                 default:painter.setBrush(Qt::red);break;
                 }
                 QRect t = m.get_rect();
-                t.setHeight(t.height()-screenAnchorY);
-                t.setTop(t.top()-screenAnchorY);
+                t.setHeight(t.height()-screenAnchorY+30);
+                t.setTop(t.top()-screenAnchorY+30);
                 t.setLeft(t.left()-screenAnchorX);
                 t.setRight(t.right()-screenAnchorX);
                 painter.drawRect(t);
@@ -342,8 +339,8 @@ void MainWindow::createMenus()
 int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
 {
     //check boundary
-    int x_limit = 10+10*map_x;
-    int y_limit = 30+10*map_y;
+    int x_limit = 10*map_x;
+    int y_limit = 10*map_y;
     switch(dir){
     case 1:{
         if(y<=30)
@@ -475,8 +472,8 @@ void MainWindow::generateStatusStr(){
     statusStr.append(QString::number(currentPlayer.get_level()));
     statusStr.append(" Atk: 1d");
     statusStr.append(QString::number(currentPlayer.get_wweapon().get_atk()));
-    //statusStr.append(" XA: ");
-    //statusStr.append(QString::number(screenAnchorX));
+    statusStr.append(" XA: ");
+    statusStr.append(QString::number(screenAnchorX));
     //statusStr.append(" YA: ");
     //statusStr.append(QString::number(screenAnchorY));
     int bonus_atk = currentPlayer.get_wweapon().get_bonus_atk(); // if weapon have bonus atk
@@ -588,12 +585,12 @@ void MainWindow::process_battle(int dir){
 }
 
 void MainWindow::player_move(){
-    int x_limit = 10+10*map_x;
+    int x_limit = 5+10*map_x;
     int y_limit = 30+10*map_y;
     switch(moveDirection){
     case 0: break;
     case 1:{
-        if(screenAnchorY>10&&currentPlayer.get_y()<=100+screenAnchorY){
+        if(screenAnchorY>30&&currentPlayer.get_y()<=70+screenAnchorY){
             currentPlayer.move(1,10);
             screenAnchorY-=10;
         }else{
@@ -603,7 +600,7 @@ void MainWindow::player_move(){
         step++;
     }break;
     case 2:{
-        if((screenAnchorY+screenYWidth<y_limit)&&(currentPlayer.get_y()>=screenAnchorY+screenYWidth-100)){
+        if((screenAnchorY+screenYWidth+30<y_limit)&&(currentPlayer.get_y()>=screenAnchorY+screenYWidth-70)){
             currentPlayer.move(2,10);
             screenAnchorY+=10;
         }else{
@@ -635,7 +632,7 @@ void MainWindow::player_move(){
     default:;
     }
     if(moveDirection!=0){
-        if(step_t<5)
+        if(step_t<15)
             step_t++;
         else{
             step_t = 0;
@@ -669,4 +666,32 @@ void MainWindow::d_map_init(int xscale,int yscale){
            d_map[j].resize(yscale);
     }
     // 2D empty vector ready
+}
+
+void MainWindow::d_map_draw(QPainter* q){
+    int x_start = (screenAnchorX-5)/10;
+    int x_width = 47;
+    int y_start = (screenAnchorY-30)/10;
+    int y_width = 24;
+    q->setPen(QColor(47,79,79));
+    for(int i = x_start;i<x_start+x_width;i++){
+        for(int j = y_start;j<y_start+y_width;j++){
+            // for every tile in screen
+            switch(d_map[i][j]){
+            case 0:q->setBrush(QColor(47,79,79));break;
+            case 4:q->setBrush(QColor(169,169,169));break;
+            default:q->setBrush(QColor(205,133,63));
+            }
+            // paint the tile
+            q->drawRect((i-x_start)*10+5,(j-y_start)*10+30,10,10);
+        }
+    }
+
+
+
+    QString pos = "X: ";
+    pos.append(QString::number(currentPlayer.get_x()/10));
+    pos.append(" Y: ");
+    pos.append(QString::number(currentPlayer.get_y()/10));
+    q->drawText(355,voiceover_height,pos);
 }
