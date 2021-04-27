@@ -72,8 +72,8 @@ MainWindow::MainWindow()
     layout->addWidget(bottomFiller);
     widget->setLayout(layout);
 //! [1]
-    QFile file("/root/map.txt");
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QFile file("/root/map.txt");                        // open map file, prepare map info
+    file.open(QIODevice::ReadOnly | QIODevice::Text);   // not good when elements are sparse
         QByteArray t = file.readAll();
         QString raw_map = QString(t);
         file.close();
@@ -108,7 +108,7 @@ MainWindow::MainWindow()
 }
 //! [2]
 
-void MainWindow::paintEvent(QPaintEvent *)
+void MainWindow::paintEvent(QPaintEvent *)   // called by update() and if QT wants
 {
     QPainter painter(this);
     if(!IsStart)
@@ -175,7 +175,7 @@ void MainWindow::paintEvent(QPaintEvent *)
     }
 }
 
-void MainWindow::InitGame()
+void MainWindow::InitGame() // parameter reset, used for first setup and restart
 {
     IsStart = true;
     freezeForAttack = false;
@@ -199,7 +199,7 @@ void MainWindow::InitGame()
     connect(timer,SIGNAL(timeout()),SLOT(game_update()));
     IsOver = false;
 }
-void MainWindow::game_update()
+void MainWindow::game_update()   // timer timeout handler, called by time pass
 {
     while(voiceover.size()>3)
         voiceover.pop_front();
@@ -229,8 +229,8 @@ void MainWindow::game_update()
     update();//paintEvent update
 }
 
-void MainWindow::hit_environment(int x,int y,int dir){
-    QString thisline;
+void MainWindow::hit_environment(int x,int y,int dir){ // can't move because something neutral ahead
+    QString thisline;                                  // append some voiceover
     int x_limit = 10*map_x;
     int y_limit = 10*map_y;
     switch(dir){
@@ -270,15 +270,7 @@ void MainWindow::hit_environment(int x,int y,int dir){
     push_voiceover(thisline);
 }
 
-QRect MainWindow::CreateRect(int x, int y)//generate random rect
-{
-    QRect rect(x,y,10,10); // in the (10,35,460,227)
-    return rect;
-}
-
-
-
-void MainWindow::keyPressEvent(QKeyEvent *event)
+void MainWindow::keyPressEvent(QKeyEvent *event)   // receive all key events
 {
     QKeyEvent *key = (QKeyEvent*)event;
     switch(key->key())
@@ -344,7 +336,7 @@ void MainWindow::createActions()
 //! [7]
 
 //! [8]
-void MainWindow::createMenus()
+void MainWindow::createMenus()   // menu function from QT tutorial
 {
 //! [9] //! [10]
     fileMenu = menuBar()->addMenu(tr("&File"));
@@ -362,7 +354,7 @@ void MainWindow::createMenus()
 }
 //! [12]
 int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
-{
+{                                       // in dir, is there anything? 0 clear, 1 building, 2 enemy
     //check boundary
     int x_limit = 10*map_x;
     int y_limit = 10*map_y;
@@ -410,7 +402,7 @@ int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
 }
 
 void MainWindow::attack_voiceover_append(QString m_name, int p_dmg, QString w_name){
-    while(voiceover.size()>0)
+    while(voiceover.size()>0)                           // output dmg done log
         voiceover.pop_back();   // reset the voiceover
     QString thisline = "You attemp to attack ";
     thisline.append(m_name);
@@ -447,7 +439,7 @@ void MainWindow::attack_voiceover_append(QString m_name, int p_dmg, QString w_na
     }
 }
 
-void MainWindow::got_hit_voiceover_append(QString m_name, int m_dmg){
+void MainWindow::got_hit_voiceover_append(QString m_name, int m_dmg){   // output take dmg log
     QString thisline = ""; // keep the voiceover
     if(m_dmg==0){
         thisline.append(m_name);
@@ -474,7 +466,7 @@ void MainWindow::got_hit_voiceover_append(QString m_name, int m_dmg){
     }
 }
 
-void MainWindow::restart(){
+void MainWindow::restart(){   // if hp reach 0, timer freezes until restart
     while(voiceover.size()>0)
         voiceover.pop_back();
     push_voiceover("Time roll back to the beginning,");
@@ -482,7 +474,7 @@ void MainWindow::restart(){
     InitGame();
 }
 
-void MainWindow::generateStatusStr(){
+void MainWindow::generateStatusStr(){  // prepare the status string at the bottom of screen
     statusStr = currentPlayer.get_name();
     statusStr.append(", the ");
     switch(currentPlayer.get_class()){
@@ -510,19 +502,19 @@ void MainWindow::generateStatusStr(){
     }
 }
 
-int MainWindow::calculateDistoPlayer(int x, int y){
+int MainWindow::calculateDistoPlayer(int x, int y){ // 2D distance to player
     qreal distx = qPow(x-currentPlayer.get_x(),2);
     qreal disty = qPow(y-currentPlayer.get_y(),2);
     qreal dist = qSqrt(distx+disty);
     return  qFloor(dist);
 }
 
-void MainWindow::spawnMob(int m_class){
+void MainWindow::spawnMob(int m_class){   // before create mob, make sure the rand pos is clear
     int x = QRandomGenerator::global()->bounded(42);
     int y = QRandomGenerator::global()->bounded(18);
     x = 20+x*10;
     y = 40+y*10;
-    while(calculateDistoPlayer(x,y)<30||isBlock(x,y,0,false)==1){
+    while(calculateDistoPlayer(x,y)<30||isBlock(x,y,0,false)==1){ // not too close to player, not on solid terrain
         x = QRandomGenerator::global()->bounded(42);
         y = QRandomGenerator::global()->bounded(18);
         x = 20+x*10;
@@ -539,7 +531,7 @@ void MainWindow::spawnMob(int m_class){
     mob_list.push_back(m);
 }
 
-void MainWindow::spawnByTick(){
+void MainWindow::spawnByTick(){  // every spawntick, spawn a new random mob if not reach the limit
     if(tick<spawnTick){
         tick++;
     }else{
@@ -551,7 +543,7 @@ void MainWindow::spawnByTick(){
     }
 }
 
-void MainWindow::attackifPossible(){
+void MainWindow::attackifPossible(){ // look if there is enemy to attack in dir
     int p_x = currentPlayer.get_x();
     int p_y = currentPlayer.get_y();
     int check_block = isBlock(p_x,p_y,lastDirection,true);
@@ -561,7 +553,7 @@ void MainWindow::attackifPossible(){
         push_voiceover("Nothing here to attack.");
     }
 }
-void MainWindow::process_battle(int dir){
+void MainWindow::process_battle(int dir){ // the battle process, dmg, get hurt, and exp
     int p_x = currentPlayer.get_x();
     int p_y = currentPlayer.get_y();
     mob rabbit = mob("rabbit",0, 1, 0, 1,p_x,p_y); // invisible rabbit: name, class, level, exp, hp, x, y
@@ -610,7 +602,7 @@ void MainWindow::process_battle(int dir){
         }
 }
 
-void MainWindow::player_move(){
+void MainWindow::player_move(){ // change player pos on move
     int x_limit = 5+10*map_x;
     int y_limit = 30+10*map_y;
     switch(moveDirection){
@@ -618,7 +610,7 @@ void MainWindow::player_move(){
     case 1:{
         if(screenAnchorY>30&&currentPlayer.get_y()<=70+screenAnchorY){
             currentPlayer.move(1,10);
-            screenAnchorY-=10;
+            screenAnchorY-=10;  // move the screen anchor if needed
         }else{
             currentPlayer.move(1,10);
         }
@@ -670,7 +662,7 @@ void MainWindow::player_move(){
 
 }
 
-void MainWindow::mob_move(){
+void MainWindow::mob_move(){          // let mobs randomly move
     if(wanderTick<mobWanderTick)
         wanderTick++;
     else{
@@ -685,7 +677,7 @@ void MainWindow::mob_move(){
     }
 }
 
-void MainWindow::d_map_init(int xscale,int yscale){
+void MainWindow::d_map_init(int xscale,int yscale){ // init d_map before fill from file
     d_map.resize(xscale);
     for(int j=0;j<d_map.size();j++){
            d_map[j].resize(yscale);
@@ -693,7 +685,7 @@ void MainWindow::d_map_init(int xscale,int yscale){
     // 2D empty vector ready
 }
 
-void MainWindow::d_map_draw(QPainter* q){
+void MainWindow::d_map_draw(QPainter* q){    // draw everything from d_map
     int x_start = (screenAnchorX-5)/10;
     int x_width = 47;
     int y_start = (screenAnchorY-30)/10;
@@ -717,17 +709,9 @@ void MainWindow::d_map_draw(QPainter* q){
             q->drawRect((i-x_start)*10+5,(j-y_start)*10+30,10,10);
         }
     }
-
-
-
-    QString pos = "X: ";
-    pos.append(QString::number(currentPlayer.get_x()/10));
-    pos.append(" Y: ");
-    pos.append(QString::number(currentPlayer.get_y()/10));
-    q->drawText(355,voiceover_height,pos);
 }
 
-void MainWindow::push_voiceover(QString s){
+void MainWindow::push_voiceover(QString s){   // push voiceover
     if(voiceover.size()==0)
         voiceover.push_back(s);
     else if(voiceover[voiceover.size()-1]!=s)

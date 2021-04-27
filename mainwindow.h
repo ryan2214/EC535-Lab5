@@ -83,7 +83,6 @@ public:
     MainWindow();
     void paintEvent(QPaintEvent *event) override;
     void InitGame();
-    QRect CreateRect(int x,int y);
     void spawnMob(int);
     int isBlock(int,int,int,bool);
     void restart();
@@ -116,8 +115,6 @@ private:
     void createMenus();
     void keyPressEvent(QKeyEvent *key) override;
 //! [2]
-    QRect recPlayer;
-    QRect recTemp;
     QTimer *timer;
     int map_x = 45;
     int map_y = 22;
@@ -133,7 +130,6 @@ private:
     int voiceover_height = 50;
     QVector<QString> voiceover;
     QString statusStr;
-    QString consoleMessage;
     QString username = "nobody";
     QString playerClass = "0";
     int step = 0;
@@ -148,7 +144,6 @@ private:
     bool IsOver = false;
     player currentPlayer;
     QVector<mob> mob_list;
-    QVector<bbbitem> ground_items;
     QVector<QVector<int>> d_map;
 
 //! [3]
