@@ -6,6 +6,8 @@ QT, program is ok to run in the image provided in lab 5.
 
 # before run
 
+"qmake", then "make" to compile in QT environment.
+
 put map.txt in /root, the program calls map.txt by /root/map.txt
 
 On the other hand, if you want to run this in other os, search and change this route in mainwindow.cpp line:75 to the position of map.txt.
