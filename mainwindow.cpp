@@ -96,7 +96,7 @@ MainWindow::MainWindow()
 //! [2]
     createActions();
     createMenus();
-    setWindowTitle(tr("NetSnake"));
+    setWindowTitle(tr("Nethack Lite"));
     setMinimumSize(160, 160);
     resize(480,272);
 
@@ -128,7 +128,7 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.setBrush(Qt::blue);
     painter.drawText(10,260,statusStr);
     // draw voiceover
-    int transparent = 110;
+    int transparent = 150;
     int voiceover_linepos = voiceover_height;
     for(auto line:voiceover){
         painter.setPen(QColor(248,248,255,transparent));
