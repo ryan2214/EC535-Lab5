@@ -72,7 +72,7 @@ MainWindow::MainWindow()
     layout->addWidget(bottomFiller);
     widget->setLayout(layout);
 //! [1]
-    QFile file("G:/2021SPRING/EC535/EC535-Lab5/map.txt");
+    QFile file("/root/map.txt");
     file.open(QIODevice::ReadOnly | QIODevice::Text);
         QByteArray t = file.readAll();
         QString raw_map = QString(t);
@@ -128,7 +128,7 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.setBrush(Qt::blue);
     painter.drawText(10,260,statusStr);
     // draw voiceover
-    int transparent = 110;
+    int transparent = 150;
     int voiceover_linepos = voiceover_height;
     for(auto line:voiceover){
         painter.setPen(QColor(248,248,255,transparent));
@@ -187,9 +187,8 @@ void MainWindow::InitGame()
     screenXWidth = 470;
     screenYWidth = 237;
     statusStr = "";
-    consoleMessage = ("Welcome to the bbb world!");
+    push_voiceover("Welcome to the bbb world!");
     step = 0;
-    voiceover.push_back(consoleMessage);
     currentPlayer = player(username,playerClass.toInt());
     while(mob_list.size()>0)
         mob_list.pop_back(); // clear all the mob
@@ -221,23 +220,10 @@ void MainWindow::game_update()
         process_battle(moveDirection);
     }
 
-    // check mob health(backup)
-    if(mob_list.size()>0){
-        auto iter = mob_list.begin();
-        while(iter!=mob_list.end()){
-            if((*iter).get_hp()<=0)
-                iter = mob_list.erase(iter);
-            else
-                ++iter;
-        }
-    }
-
     // if game over, set IsOver = true
     if(currentPlayer.get_hp()<=0){
-        QString deadline = "Time freezed from the danger tick,";
-        voiceover.push_back(deadline);
-        deadline = "press R to restart.";
-        voiceover.push_back(deadline);
+        push_voiceover("Time freezed from the danger tick,");
+        push_voiceover("press R to restart.");
         IsOver = true;
     }
     update();//paintEvent update
@@ -281,8 +267,7 @@ void MainWindow::hit_environment(int x,int y,int dir){
         default:thisline = "You don't know what is ahead.";
         }
     }
-    if((*voiceover.end())!=thisline)
-        voiceover.push_back(thisline);
+    push_voiceover(thisline);
 }
 
 QRect MainWindow::CreateRect(int x, int y)//generate random rect
@@ -492,10 +477,8 @@ void MainWindow::got_hit_voiceover_append(QString m_name, int m_dmg){
 void MainWindow::restart(){
     while(voiceover.size()>0)
         voiceover.pop_back();
-    QString thisline = "Time roll back to the beginning,";
-    voiceover.push_back(thisline);
-    thisline = "enjoy your life!";
-    voiceover.push_back(thisline);
+    push_voiceover("Time roll back to the beginning,");
+    push_voiceover("enjoy your life!");
     InitGame();
 }
 
@@ -575,8 +558,7 @@ void MainWindow::attackifPossible(){
     if(check_block==2)
         process_battle(lastDirection);
     else{
-        QString thisline = "Nothing here to attack.";
-        voiceover.push_back(thisline);
+        push_voiceover("Nothing here to attack.");
     }
 }
 void MainWindow::process_battle(int dir){
@@ -681,9 +663,7 @@ void MainWindow::player_move(){
         else{
             step_t = 0;
             //TODO: accuire player pos and say something related.
-            QString thisline = "You are walking through a silent place.";
-            if((*voiceover.end())!=thisline)
-                voiceover.push_back(thisline);
+            push_voiceover("You are walking through a silent place.");
         }
         moveDirection = 0;
     }
@@ -745,4 +725,11 @@ void MainWindow::d_map_draw(QPainter* q){
     pos.append(" Y: ");
     pos.append(QString::number(currentPlayer.get_y()/10));
     q->drawText(355,voiceover_height,pos);
+}
+
+void MainWindow::push_voiceover(QString s){
+    if(voiceover.size()==0)
+        voiceover.push_back(s);
+    else if(voiceover[voiceover.size()-1]!=s)
+        voiceover.push_back(s);
 }

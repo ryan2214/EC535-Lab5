@@ -99,6 +99,7 @@ public:
     void d_map_init(int xscale,int yscale);
     void d_map_draw(QPainter*);
     void hit_environment(int x,int y,int dir);
+    void push_voiceover(QString s);
 protected:
 //! [0]
 
