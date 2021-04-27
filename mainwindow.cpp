@@ -89,6 +89,7 @@ MainWindow::MainWindow()
                 if(*iter=='\n')
                     iter++;
                 d_map[x][y]=QString((*iter)).toInt(); // .digitValue()
+                iter++;
             }
         }
 
@@ -101,10 +102,8 @@ MainWindow::MainWindow()
 
     bool bOk = false;
     username = QInputDialog::getText(this,"Name","What's your name?",QLineEdit::Normal,"",&bOk);
-    if (bOk && username!="") {
-        currentPlayer = player(username); // man with a long_sword
-    }else if(bOk && username==""){
-        currentPlayer = player("nobody");
+    if (bOk) {
+        playerClass = QInputDialog::getText(this,"Class","0:Knight 1:Healer 2:Wizard",QLineEdit::Normal,"",&bOk);
     }
 }
 //! [2]
@@ -191,7 +190,7 @@ void MainWindow::InitGame()
     consoleMessage = ("Welcome to the bbb world!");
     step = 0;
     voiceover.push_back(consoleMessage);
-    currentPlayer = player(username);
+    currentPlayer = player(username,playerClass.toInt());
     while(mob_list.size()>0)
         mob_list.pop_back(); // clear all the mob
     spawnMob(1);//spawn 1 slime 
@@ -217,14 +216,13 @@ void MainWindow::game_update()
         player_move();
 
     }else if(check_block==1){
-        QString thisline = "You ran into a wall.";
-        voiceover.push_back(thisline);
+        hit_environment(p_x,p_y,moveDirection);
     }else if(check_block==2){
         process_battle(moveDirection);
     }
 
     // check mob health(backup)
-    /*if(mob_list.size()>0){
+    if(mob_list.size()>0){
         auto iter = mob_list.begin();
         while(iter!=mob_list.end()){
             if((*iter).get_hp()<=0)
@@ -232,7 +230,7 @@ void MainWindow::game_update()
             else
                 ++iter;
         }
-    }*/
+    }
 
     // if game over, set IsOver = true
     if(currentPlayer.get_hp()<=0){
@@ -243,6 +241,48 @@ void MainWindow::game_update()
         IsOver = true;
     }
     update();//paintEvent update
+}
+
+void MainWindow::hit_environment(int x,int y,int dir){
+    QString thisline;
+    int x_limit = 10*map_x;
+    int y_limit = 10*map_y;
+    switch(dir){
+    case 1:{
+        if(y<=30)
+            thisline = "That's the end of world";
+        y-=10;
+    }break;
+    case 2:{
+        if(y>=y_limit)
+            thisline = "That's the end of world";
+        y+=10;
+    }break;
+    case 3:{
+        if(x<=10)
+            thisline = "That's the end of world";
+        x-=10;
+    }break;
+    case 4:{
+        if(x>=x_limit)
+            thisline = "That's the end of world";
+        x+=10;
+    }break;
+    default:break;
+    }
+    if(thisline.isEmpty()){
+        int obj = d_map[(x-5)/10][(y-30)/10];
+        switch(obj){
+        case 3:thisline = "You wish you know how to swim.";break;  // water
+        case 4:thisline = "You found a solid wall ahead.";break; // wall
+        case 5:thisline = "You found a door, nice.";break;  // door
+        case 6:thisline = "You don't even look at the gold.";break;  // gold
+        case 7:thisline = "A big tree, let's take a snap.";break;  // tree
+        default:thisline = "You don't know what is ahead.";
+        }
+    }
+    if((*voiceover.end())!=thisline)
+        voiceover.push_back(thisline);
 }
 
 QRect MainWindow::CreateRect(int x, int y)//generate random rect
@@ -295,7 +335,7 @@ void MainWindow::about()
 {
     QMessageBox::about(this, tr("About Menu"),
             tr("The Game is made by Tianhe Lei.\n"
-               "It is a Nethack Lite."));
+               "tianhel@bu.edu"));
 }
 
 //! [4]
@@ -364,6 +404,10 @@ int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
     }break;
     default:break;
     }
+    // map item
+    int map_element = d_map[(x-5)/10][(y-30)/10];
+    if(map_element>2)
+        return 1;
     if(isPlayer){
         //check if run into mob
         for (mob m : mob_list) {
@@ -472,8 +516,8 @@ void MainWindow::generateStatusStr(){
     statusStr.append(QString::number(currentPlayer.get_level()));
     statusStr.append(" Atk: 1d");
     statusStr.append(QString::number(currentPlayer.get_wweapon().get_atk()));
-    statusStr.append(" XA: ");
-    statusStr.append(QString::number(screenAnchorX));
+    //statusStr.append(" XA: ");
+    //statusStr.append(QString::number(d_map[6][10]));
     //statusStr.append(" YA: ");
     //statusStr.append(QString::number(screenAnchorY));
     int bonus_atk = currentPlayer.get_wweapon().get_bonus_atk(); // if weapon have bonus atk
@@ -495,7 +539,7 @@ void MainWindow::spawnMob(int m_class){
     int y = QRandomGenerator::global()->bounded(18);
     x = 20+x*10;
     y = 40+y*10;
-    while(calculateDistoPlayer(x,y)<30){
+    while(calculateDistoPlayer(x,y)<30||isBlock(x,y,0,false)==1){
         x = QRandomGenerator::global()->bounded(42);
         y = QRandomGenerator::global()->bounded(18);
         x = 20+x*10;
@@ -638,7 +682,8 @@ void MainWindow::player_move(){
             step_t = 0;
             //TODO: accuire player pos and say something related.
             QString thisline = "You are walking through a silent place.";
-            voiceover.push_back(thisline);
+            if((*voiceover.end())!=thisline)
+                voiceover.push_back(thisline);
         }
         moveDirection = 0;
     }
@@ -678,8 +723,14 @@ void MainWindow::d_map_draw(QPainter* q){
         for(int j = y_start;j<y_start+y_width;j++){
             // for every tile in screen
             switch(d_map[i][j]){
-            case 0:q->setBrush(QColor(47,79,79));break;
-            case 4:q->setBrush(QColor(169,169,169));break;
+            case 0:q->setBrush(QColor(47,79,79));break;  // dirt
+            case 1:q->setBrush(QColor(0,100,0));break;  // grass
+            case 2:q->setBrush(QColor(112,128,144));break;  // floor
+            case 3:q->setBrush(QColor(30,144,255));break;  // water
+            case 4:q->setBrush(QColor(169,169,169));break; // wall
+            case 5:q->setBrush(QColor(205,133,63));break;  // door
+            case 6:q->setBrush(QColor(255,215,0));break;  // gold
+            case 7:q->setBrush(QColor(85,107,47));break;  // tree
             default:q->setBrush(QColor(205,133,63));
             }
             // paint the tile

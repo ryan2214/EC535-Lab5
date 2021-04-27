@@ -98,7 +98,7 @@ public:
     void mob_move();
     void d_map_init(int xscale,int yscale);
     void d_map_draw(QPainter*);
-
+    void hit_environment(int x,int y,int dir);
 protected:
 //! [0]
 
@@ -133,7 +133,8 @@ private:
     QVector<QString> voiceover;
     QString statusStr;
     QString consoleMessage;
-    QString username;
+    QString username = "nobody";
+    QString playerClass = "0";
     int step = 0;
     int step_t = 0;
     int speed = 100;

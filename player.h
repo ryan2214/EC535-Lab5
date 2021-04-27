@@ -7,7 +7,7 @@
 class player{
 public:
     player();
-    player(QString);
+    player(QString,int);
     player(QString name,int roleClass, int level, bbbitem wieldWeapon, QVector<bbbitem> backpackItems, int cash, int x,int y);
     QString get_name();
     int get_class(); // 0: Knight  1: Healer  2: Wizard

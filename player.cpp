@@ -13,9 +13,15 @@ player::player(){
     QRect r(x_pos,y_pos,10,10);
     rec = r;
 }
-player::player(QString n){
-    name = n;
-    p_class = 0;
+player::player(QString n,int pclass){
+    if(n.size()>0)
+        name = n;
+    else
+        name = "nobody";
+    if(pclass==0||pclass==1||pclass==2)
+        p_class = pclass;
+    else
+        p_class = 0;
     p_level = 1;
     w_weapon = bbbitem("long_sword", 8,0, 0, 40);
     b_pack.push_back(w_weapon);
