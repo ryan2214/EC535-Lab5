@@ -52,6 +52,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QRandomGenerator>
 #include <QDialog>
 #include <QPainter>
 #include <QKeyEvent>
@@ -83,7 +84,15 @@ public:
     void InitGame();
     QRect CreateRect(int x,int y);
     void spawnMob(int);
-    int isBlock();
+    int isBlock(int,int,int,bool);
+    void restart();
+    void generateStatusStr();
+    void attack_voiceover_append(QString m_name, int p_dmg, QString w_name);
+    void got_hit_voiceover_append(QString m_name, int m_dmg);
+    int calculateDistoPlayer(int,int);
+    void spawnByTick();
+    void process_battle();
+    void player_move();
 protected:
 //! [0]
 
@@ -105,16 +114,21 @@ private:
     QTimer *timer;
     int moveDirection = 0;
     int lastDirection = 0;
-    QString sDisplay;
-    QString sStepLabel;
+    int voiceover_interval;
+    int voiceover_height;
+    QVector<QString> voiceover;
+    QString statusStr;
     QString consoleMessage;
     int step = 0;
+    int step_t = 0;
     int speed = 100;
+    int tick = 0;
+    int spawnTick = 100;
+    int maxMobAmount = 5;
     bool IsStart = false;
     bool IsOver = false;
     player currentPlayer;
     QVector<mob> mob_list;
-    QVector<QRect> rec_Mob;
     QVector<bbbitem> ground_items;
 
 

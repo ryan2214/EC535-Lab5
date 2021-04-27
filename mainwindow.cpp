@@ -77,7 +77,8 @@ MainWindow::MainWindow()
 //! [2]
     createActions();
     createMenus();
-
+    voiceover_height = 50;
+    voiceover_interval = 15;
     setWindowTitle(tr("Nethack Lite"));
     setMinimumSize(160, 160);
     resize(480,272);
@@ -91,30 +92,47 @@ void MainWindow::paintEvent(QPaintEvent *)
     {
         InitGame();
     }
-    //background
+    // background
     painter.setPen(Qt::black);
     painter.setBrush(Qt::black);
     painter.drawRect(5,30,470,237);
-    //step count
+    // draw status
+    generateStatusStr(); // prepare statusStr
     QFont font2("Courier",10);
     painter.setFont(font2);
     painter.setPen(Qt::white);
     painter.setBrush(Qt::blue);
-    QString statusStr = "X: ";
-    statusStr.append(QString::number(currentPlayer.get_x()));
-    statusStr.append(" Y: ");
-    statusStr.append(QString::number(currentPlayer.get_y()));
-    statusStr.append(" Steps: ");
-    statusStr.append(QString::number(step));
     painter.drawText(10,260,statusStr);
-    //painter.drawText(100,200,QString::number(step));
-    //draw
-    painter.setBrush(Qt::green);
+    // draw voiceover
+    int transparent = 110;
+    int voiceover_linepos = voiceover_height;
+    for(auto line:voiceover){
+        if(transparent<=170){
+            painter.setPen(QColor(248,248,255,transparent));
+            painter.drawText(10,voiceover_linepos,line);
+            voiceover_linepos+=voiceover_interval;
+            transparent+=30;
+        }
+    }
+    // draw player
+    switch(currentPlayer.get_class()){
+        case 0:painter.setBrush(QColor(255,192,203));break;
+        case 1:painter.setBrush(Qt::white);break;
+        case 2:painter.setBrush(QColor(0,255,255));break;
+        default:painter.setBrush(QColor(211,211,211));break;
+    }
     painter.setPen(Qt::black);
     painter.drawRect(recPlayer);
-    painter.setBrush(Qt::red);
-    for(QRect r:rec_Mob)
-        painter.drawRect(r);
+    // draw mobs
+
+    for(auto m:mob_list){
+        switch(m.get_class()){
+        case 1:painter.setBrush(QColor(0,255,0));break;
+        case 2:painter.setBrush(QColor(220,20,60));break;
+        default:painter.setBrush(Qt::red);break;
+        }
+        painter.drawRect(m.get_rect());
+    }
     if(IsOver)
     {
         timer->stop();
@@ -123,69 +141,65 @@ void MainWindow::paintEvent(QPaintEvent *)
 
 void MainWindow::InitGame()
 {
+    IsStart = true;
     moveDirection = 0;
     lastDirection = 0;
-    sStepLabel = "Steps:";
-    consoleMessage = tr("Welcome to the bbb world!");
+    statusStr = "";
+    consoleMessage = ("Welcome to the bbb world!");
     step = 0;
-    IsStart = true;
-    IsOver = false;
-    spawnMob(1);//spawn 1 slime
-    QRect rect(80,50,10,10);
+    voiceover.push_back(consoleMessage);
+    currentPlayer = player();
+    while(mob_list.size()>0)
+        mob_list.pop_back(); // clear all the mob
+    spawnMob(1);//spawn 1 slime 
+    QRect rect(currentPlayer.get_x(),currentPlayer.get_y(),10,10);
     recPlayer = rect;
-    speed = 100;
+    speed = 50;
     timer = new QTimer(this);
     timer->start(speed); // timer for update
     connect(timer,SIGNAL(timeout()),SLOT(game_update()));
+    IsOver = false;
 }
 void MainWindow::game_update()
 {
-    sDisplay = "";
-
+    while(voiceover.size()>3)
+        voiceover.pop_front();
+    // spawn mob if not reach the limit
+    spawnByTick();
     // if nothing block the player
-    if(isBlock()==0){
-        switch(moveDirection)
-        {
-            case 0: break;
-            case 1:{
-                recPlayer.setHeight(recPlayer.height()-10);
-                recPlayer.setTop(recPlayer.top()-10);
-                currentPlayer.move(1,10);
-                lastDirection = 1;
-                step++;
-                moveDirection = 0;
-            }break;
-            case 2:{
-                recPlayer.setHeight(recPlayer.height()+10);
-                recPlayer.setTop(recPlayer.top()+10);
-                currentPlayer.move(2,10);
-                lastDirection = 2;
-                step++;
-                moveDirection = 0;
-            }break;
-            case 3:{
-                recPlayer.setLeft(recPlayer.left()-10);
-                recPlayer.setRight(recPlayer.right()-10);
-                currentPlayer.move(3,10);
-                lastDirection = 3;
-                step++;
-                moveDirection = 0;
-            }break;
-            case 4:{
-                recPlayer.setLeft(recPlayer.left()+10);
-                recPlayer.setRight(recPlayer.right()+10);
-                currentPlayer.move(4,10);
-                lastDirection = 4;
-                step++;
-                moveDirection = 0;
-            }break;
-            default :
-            ;
-        }
+    int p_x = currentPlayer.get_x();
+    int p_y = currentPlayer.get_y();
+    int check_block = isBlock(p_x,p_y,moveDirection,true);
+
+    if(check_block==0){
+        player_move();
+
+    }else if(check_block==1){
+        QString thisline = "You ran into a wall.";
+        voiceover.push_back(thisline);
+    }else if(check_block==2){
+        process_battle();
     }
 
+    // check mob health(backup)
+    /*if(mob_list.size()>0){
+        auto iter = mob_list.begin();
+        while(iter!=mob_list.end()){
+            if((*iter).get_hp()<=0)
+                iter = mob_list.erase(iter);
+            else
+                ++iter;
+        }
+    }*/
 
     // if game over, set IsOver = true
+    if(currentPlayer.get_hp()<=0){
+        QString deadline = "Time freezed from the danger tick,";
+        voiceover.push_back(deadline);
+        deadline = "press R to restart.";
+        voiceover.push_back(deadline);
+        IsOver = true;
+    }
     update();//paintEvent update
 }
 
@@ -195,22 +209,7 @@ QRect MainWindow::CreateRect(int x, int y)//generate random rect
     return rect;
 }
 
-void MainWindow::spawnMob(int m_class){
-    int x = qrand()%42;
-    int y = qrand()%18;
-    x = 20+x*10;
-    y = 40+y*10;
-    while(x==currentPlayer.get_x()&&y==currentPlayer.get_y()){
-        x = qrand()%42;
-        y = qrand()%18;
-        x = 20+x*10;
-        y = 40+y*10;
-    }// dont let mob spawn at the pos of player
-    QRect r = CreateRect(x,y);
-    rec_Mob.push_back(r);
-    mob m = mob("slime",m_class, 1, 2, 5, x, y);
-    mob_list.push_back(m);
-}
+
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
@@ -221,6 +220,11 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         case Qt::Key_Down : moveDirection=2;break;
         case Qt::Key_Left : moveDirection=3;break;
         case Qt::Key_Right : moveDirection=4;break;
+        case Qt::Key_R :{
+            if(IsOver==true){
+                restart();
+            }
+        }break;
         default: ;
     }
 }
@@ -277,13 +281,11 @@ void MainWindow::createMenus()
 
 }
 //! [12]
-int MainWindow::isBlock()
+int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
 {
     //check boundary
-    int x = currentPlayer.get_x();
-    int y = currentPlayer.get_y();
 
-    switch(moveDirection){
+    switch(dir){
     case 1:{
         if(y<=30)
             return 1;
@@ -306,12 +308,251 @@ int MainWindow::isBlock()
     }break;
     default:break;
     }
-
-    //check if run into mob
-    for (mob m : mob_list) {
-        if(x==m.get_x()&&y==m.get_y())
-            return 2;          // blocked by mob
+    if(isPlayer){
+        //check if run into mob
+        for (mob m : mob_list) {
+            if(x==m.get_x()&&y==m.get_y())
+                return 2;          // blocked by mob
+        }
+    }else{
+        //check if run into player
     }
 
+
     return 0; // non-block
+}
+
+void MainWindow::attack_voiceover_append(QString m_name, int p_dmg, QString w_name){
+    while(voiceover.size()>0)
+        voiceover.pop_back();   // reset the voiceover
+    QString thisline = "You attemp to attack ";
+    thisline.append(m_name);
+    thisline.append(" with ");
+    thisline.append(w_name);
+    thisline.append(".");
+    voiceover.push_back(thisline);
+    if(p_dmg==0){
+        thisline = "You didn't hit the ";
+        thisline.append(m_name);
+        thisline.append(".");
+        voiceover.push_back(thisline);
+    }else if(p_dmg<10){
+        thisline = "You barely hit the ";
+        thisline.append(m_name);
+        thisline.append(", dealt ");
+        thisline.append(QString::number(p_dmg));
+        thisline.append(" dmg.");
+        voiceover.push_back(thisline);
+    }else if(p_dmg<100){
+        thisline = "You hit the ";
+        thisline.append(m_name);
+        thisline.append("hard, dealt ");
+        thisline.append(QString::number(p_dmg));
+        thisline.append(" dmg.");
+        voiceover.push_back(thisline);
+    }else{
+        thisline = "You made a lengendary attack on ";
+        thisline.append(m_name);
+        thisline.append(", dealt ");
+        thisline.append(QString::number(p_dmg));
+        thisline.append(" dmg.");
+        voiceover.push_back(thisline);
+    }
+}
+
+void MainWindow::got_hit_voiceover_append(QString m_name, int m_dmg){
+    QString thisline = ""; // keep the voiceover
+    if(m_dmg==0){
+        thisline.append(m_name);
+        thisline.append(" didn't hit you.");
+        voiceover.push_back(thisline);
+    }else if(m_dmg<10){
+        thisline.append(m_name);
+        thisline.append(" barely hit you, dealt ");
+        thisline.append(QString::number(m_dmg));
+        thisline.append(" dmg.");
+        voiceover.push_back(thisline);
+    }else if(m_dmg<100){
+        thisline.append(m_name);
+        thisline.append(" hit you hard, dealt ");
+        thisline.append(QString::number(m_dmg));
+        thisline.append(" dmg.");
+        voiceover.push_back(thisline);
+    }else{
+        thisline.append(m_name);
+        thisline.append(" made a lengendary attack on you, dealt ");
+        thisline.append(QString::number(m_dmg));
+        thisline.append(" dmg.");
+        voiceover.push_back(thisline);
+    }
+}
+
+void MainWindow::restart(){
+    while(voiceover.size()>0)
+        voiceover.pop_back();
+    QString thisline = "Time roll back to the beginning,";
+    voiceover.push_back(thisline);
+    thisline = "enjoy your life!";
+    voiceover.push_back(thisline);
+    InitGame();
+}
+
+void MainWindow::generateStatusStr(){
+    statusStr = "Hp: ";
+    statusStr.append(QString::number(currentPlayer.get_hp()));
+    statusStr.append("/");
+    statusStr.append(QString::number(currentPlayer.get_maxhp()));
+    statusStr.append(" Lvl: ");
+    statusStr.append(QString::number(currentPlayer.get_level()));
+    statusStr.append(" Atk: 1d");
+    statusStr.append(QString::number(currentPlayer.get_wweapon().get_atk()));
+
+    int bonus_atk = currentPlayer.get_wweapon().get_bonus_atk(); // if weapon have bonus atk
+    if(bonus_atk>0){
+        statusStr.append("+");
+        statusStr.append(QString::number(bonus_atk));
+    }
+    //statusStr.append(" X: ");
+    //statusStr.append(QString::number(currentPlayer.get_x()));
+    //statusStr.append(" Y: ");
+    //statusStr.append(QString::number(currentPlayer.get_y()));
+    statusStr.append(" Steps: ");
+    statusStr.append(QString::number(step));
+}
+
+int MainWindow::calculateDistoPlayer(int x, int y){
+    qreal distx = qPow(x-currentPlayer.get_x(),2);
+    qreal disty = qPow(y-currentPlayer.get_y(),2);
+    qreal dist = qSqrt(distx+disty);
+    return  qFloor(dist);
+}
+
+void MainWindow::spawnMob(int m_class){
+    int x = QRandomGenerator::global()->bounded(42);
+    int y = QRandomGenerator::global()->bounded(18);
+    x = 20+x*10;
+    y = 40+y*10;
+    while(calculateDistoPlayer(x,y)<30){
+        x = QRandomGenerator::global()->bounded(42);
+        y = QRandomGenerator::global()->bounded(18);
+        x = 20+x*10;
+        y = 40+y*10;
+    }// dont let mob spawn at the pos of player
+    QString m_name;
+    switch(m_class){
+    case 1:m_name = "slime";break;
+    case 2:m_name = "wolf";break;
+    default:m_name = "void";
+    }
+
+    mob m = mob(m_name,m_class, 1, 2, 5, x, y);
+    mob_list.push_back(m);
+}
+
+void MainWindow::spawnByTick(){
+    if(tick<spawnTick){
+        tick++;
+    }else{
+        tick = 0;
+        if(mob_list.size()<maxMobAmount){
+            int m_class = QRandomGenerator::global()->bounded(1,3);
+            spawnMob(m_class);
+        }
+    }
+}
+
+void MainWindow::process_battle(){
+    int p_x = currentPlayer.get_x();
+    int p_y = currentPlayer.get_y();
+    mob rabbit = mob("rabbit",0, 1, 0, 1,p_x,p_y); // invisible rabbit: name, class, level, exp, hp, x, y
+    switch(moveDirection){
+        case 1:{
+            rabbit.set_y(p_y-10);
+        }break;
+        case 2:{
+            rabbit.set_y(p_y+10);
+        }break;
+        case 3:{
+            rabbit.set_x(p_x-10);
+        }break;
+        case 4:{
+            rabbit.set_x(p_x+10);
+        }break;
+        default:{
+            rabbit.set_x(0);
+            rabbit.set_y(0);
+        }
+    }// set a rabbit in the mob pos
+
+        auto iter = mob_list.begin();
+        while(iter!=mob_list.end()){
+            if((*iter).get_x()==rabbit.get_x()&&(*iter).get_y()==rabbit.get_y()){
+                // m is the engaging mob
+                // calculate engaging
+                int p_dmg = currentPlayer.atk_roll();
+                (*iter).take_dmg(p_dmg);
+
+                attack_voiceover_append((*iter).get_name(), p_dmg, currentPlayer.get_wweapon().get_name());
+                if((*iter).get_hp()>0){
+                    int m_dmg = (*iter).atk_roll();
+                    currentPlayer.take_dmg(m_dmg);
+                    got_hit_voiceover_append((*iter).get_name(),m_dmg);
+                }
+                moveDirection = 0;
+            }
+
+            if((*iter).get_hp()<=0){ // mob dies, get exp from it
+                currentPlayer.acc_exp((*iter).get_exp());
+                iter = mob_list.erase(iter);
+            }
+            else
+                ++iter;
+        }
+}
+
+void MainWindow::player_move(){
+    switch(moveDirection){
+    case 0: break;
+    case 1:{
+        recPlayer.setHeight(recPlayer.height()-10);
+        recPlayer.setTop(recPlayer.top()-10);
+        currentPlayer.move(1,10);
+        lastDirection = 1;
+        step++;
+    }break;
+    case 2:{
+        recPlayer.setHeight(recPlayer.height()+10);
+        recPlayer.setTop(recPlayer.top()+10);
+        currentPlayer.move(2,10);
+        lastDirection = 2;
+        step++;
+    }break;
+    case 3:{
+        recPlayer.setLeft(recPlayer.left()-10);
+        recPlayer.setRight(recPlayer.right()-10);
+        currentPlayer.move(3,10);
+        lastDirection = 3;
+        step++;
+    }break;
+    case 4:{
+        recPlayer.setLeft(recPlayer.left()+10);
+        recPlayer.setRight(recPlayer.right()+10);
+        currentPlayer.move(4,10);
+        lastDirection = 4;
+        step++;
+    }break;
+    default:;
+    }
+    if(moveDirection!=0){
+        if(step_t<5)
+            step_t++;
+        else{
+            step_t = 0;
+            //TODO: accuire player pos and say something related.
+            QString thisline = "You are walking through a silent place.";
+            voiceover.push_back(thisline);
+        }
+        moveDirection = 0;
+    }
+
 }

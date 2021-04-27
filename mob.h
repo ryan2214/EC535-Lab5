@@ -1,6 +1,10 @@
 #ifndef MOB_H
 #define MOB_H
 #include <QString>
+#include <QRect>
+#include <QRandomGenerator>
+class QRect;
+
 class mob{
 public:
     mob();
@@ -9,6 +13,7 @@ public:
     int atk_roll();
     int get_exp();
     int get_level();
+    int get_class();
     int get_x();
     int get_y();
     void set_x(int x);
@@ -17,6 +22,7 @@ public:
     void rand_y(int l_b, int u_b);
     void take_dmg(int dmg);
     int get_hp();
+    QRect get_rect();
 private:
     QString name;
     int hitpoint = 1;
@@ -25,7 +31,8 @@ private:
     int c_class = 0;
     int c_level = 1;
     int exp_drop = 1;
-    int b_atk = 1;
-    int r_atk = 1;
+    int bonus_atk = 0;
+    int raw_atk = 1;
+    QRect rec;
 };
 #endif // MOB_H

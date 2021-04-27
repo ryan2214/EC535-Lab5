@@ -17,6 +17,8 @@ mob::mob(QString n,int mobClass, int level, int exp, int h,int x,int y){
     hitpoint = h;
     x_pos = x;
     y_pos = y;
+    QRect r(x,y,10,10);
+    rec = r;
 }
 
 QString mob::get_name(){
@@ -24,7 +26,7 @@ QString mob::get_name(){
 }
 
 int mob::atk_roll(){
-    return b_atk+qrand()%r_atk;
+    return bonus_atk+QRandomGenerator::global()->bounded(raw_atk+1);
 }
 
 int mob::get_exp(){
@@ -33,6 +35,9 @@ int mob::get_exp(){
 
 int mob::get_level(){
     return c_level;
+}
+int mob::get_class(){
+    return c_class;
 }
 
 void mob::set_x(int x){
@@ -48,14 +53,17 @@ int mob::get_y(){
     return y_pos;
 }
 void mob::rand_x(int l_b, int u_b){
-    x_pos = l_b + qrand()%u_b;
+    x_pos = QRandomGenerator::global()->bounded(l_b,u_b);
 }
 void mob::rand_y(int l_b, int u_b){
-    y_pos = l_b + qrand()%u_b;
+    y_pos = QRandomGenerator::global()->bounded(l_b,u_b);
 }
 void mob::take_dmg(int dmg){
     hitpoint-=dmg;
 }
 int mob::get_hp(){
     return hitpoint;
+}
+QRect mob::get_rect(){
+    return rec;
 }

@@ -5,11 +5,11 @@ player::player(){
     name = "A";
     p_class = 0;
     p_level = 1;
-    w_weapon = bbbitem("long_sword", 0,8, 0, 40);
+    w_weapon = bbbitem("long_sword", 8,0, 0, 40);
     b_pack.push_back(w_weapon);
     cash = 0;
-    x_pos = 80;
-    y_pos = 50;
+    x_pos = 50;
+    y_pos = 110;
 }
 
 player::player(QString n,int roleClass, int level, bbbitem wieldWeapon, QVector<bbbitem> backpackItems, int c, int x,int y){
@@ -46,10 +46,10 @@ void player::set_level(int l){
     p_level = l;
 }
 void player::level_up(){
-    if(exp>(2*p_level+1)){
-        p_level++;
-        exp = exp - 2*p_level -1;
-    }
+    p_level++;
+    exp = exp - 2*p_level -1;
+    hitpoint = 2*p_level+1;
+    max_hp = hitpoint;
 }
 int player::get_exp(){
     return exp;
@@ -69,6 +69,9 @@ void player::get_heal(int heal){
 int player::get_hp(){
     return hitpoint;
 }
+int player::get_maxhp(){
+    return max_hp;
+}
 void player::pick_up_item(bbbitem i){
     b_pack.push_back(i);
 }
@@ -82,7 +85,8 @@ int player::get_bonus_atk(){
     return w_weapon.get_bonus_atk();
 }
 int player::atk_roll(){
-    return get_atk()+qrand()%get_bonus_atk();
+    int dmg = get_bonus_atk()+QRandomGenerator::global()->bounded(get_atk()+1);
+    return dmg;
 }
 QVector<bbbitem> player::get_backpack(){
     return b_pack;
@@ -92,16 +96,38 @@ void player::move(int dir,int dis){
     switch (dir) {
     case 1:{
         y_pos-=dis;
+        set_face_dir(1);
     }break;
     case 2:{
         y_pos+=dis;
+        set_face_dir(2);
     }break;
     case 3:{
         x_pos-=dis;
+        set_face_dir(3);
     }break;
     case 4:{
         x_pos+=dis;
+        set_face_dir(4);
     }break;
     default:break;
+    }
+}
+
+void player::set_face_dir(int dir){
+    face_dir = dir;
+}
+int player::get_face_dir(){
+    return face_dir;
+}
+
+bbbitem player::get_wweapon(){
+    return w_weapon;
+}
+
+void player::acc_exp(int i){
+    exp+=i;
+    if(exp>(2*p_level+1)){
+        level_up();
     }
 }
