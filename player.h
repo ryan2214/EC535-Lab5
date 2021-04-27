@@ -1,11 +1,13 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 #include <QVector>
+#include <QRect>
 #include <QRandomGenerator>
 #include "bbbitem.h"
 class player{
 public:
     player();
+    player(QString);
     player(QString name,int roleClass, int level, bbbitem wieldWeapon, QVector<bbbitem> backpackItems, int cash, int x,int y);
     QString get_name();
     int get_class(); // 0: Knight  1: Healer  2: Wizard
@@ -31,10 +33,12 @@ public:
     void move(int dir,int dis);
     void set_face_dir(int dir);
     int get_face_dir();
+    QRect get_rect();
 
     QVector<bbbitem> get_backpack();
 private:
     QString name;
+    QRect rec;
     int hitpoint = 3;
     int max_hp = 3;
     int x_pos = 0;

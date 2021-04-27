@@ -22,6 +22,7 @@ public:
     void rand_y(int l_b, int u_b);
     void take_dmg(int dmg);
     int get_hp();
+    void move(int dir,int dis);
     QRect get_rect();
 private:
     QString name;

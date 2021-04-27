@@ -67,3 +67,28 @@ int mob::get_hp(){
 QRect mob::get_rect(){
     return rec;
 }
+void mob::move(int dir,int dis){
+        switch (dir) {
+        case 1:{
+            y_pos-=dis;
+            rec.setHeight(rec.height()-10);
+            rec.setTop(rec.top()-10);
+        }break;
+        case 2:{
+            y_pos+=dis;
+            rec.setHeight(rec.height()+10);
+            rec.setTop(rec.top()+10);
+        }break;
+        case 3:{
+            x_pos-=dis;
+            rec.setLeft(rec.left()-10);
+            rec.setRight(rec.right()-10);
+        }break;
+        case 4:{
+            x_pos+=dis;
+            rec.setLeft(rec.left()+10);
+            rec.setRight(rec.right()+10);
+        }break;
+        default:break;
+        }
+    }

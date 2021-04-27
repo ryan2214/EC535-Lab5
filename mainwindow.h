@@ -91,8 +91,10 @@ public:
     void got_hit_voiceover_append(QString m_name, int m_dmg);
     int calculateDistoPlayer(int,int);
     void spawnByTick();
-    void process_battle();
+    void process_battle(int dir);
+    void attackifPossible();
     void player_move();
+    void mob_move();
 protected:
 //! [0]
 
@@ -112,18 +114,23 @@ private:
     QRect recPlayer;
     QRect recTemp;
     QTimer *timer;
+    bool freezeForAttack = false;
+    int atkDirection = 0;
     int moveDirection = 0;
     int lastDirection = 0;
-    int voiceover_interval;
-    int voiceover_height;
+    int voiceover_interval = 15;
+    int voiceover_height = 50;
     QVector<QString> voiceover;
     QString statusStr;
     QString consoleMessage;
+    QString username;
     int step = 0;
     int step_t = 0;
     int speed = 100;
     int tick = 0;
     int spawnTick = 100;
+    int wanderTick = 0;
+    int mobWanderTick = 20;
     int maxMobAmount = 5;
     bool IsStart = false;
     bool IsOver = false;

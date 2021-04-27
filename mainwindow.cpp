@@ -73,15 +73,21 @@ MainWindow::MainWindow()
     layout->addWidget(bottomFiller);
     widget->setLayout(layout);
 //! [1]
-    currentPlayer = player(); // man with a long_sword
+     // man with a long_sword
 //! [2]
     createActions();
     createMenus();
-    voiceover_height = 50;
-    voiceover_interval = 15;
     setWindowTitle(tr("Nethack Lite"));
     setMinimumSize(160, 160);
     resize(480,272);
+
+    bool bOk = false;
+    username = QInputDialog::getText(this,"QInputdialog_Name","What's your name?",QLineEdit::Normal,"",&bOk);
+    if (bOk && !username.isEmpty()) {
+        currentPlayer = player(username);
+    }else if(bOk){
+        currentPlayer = player("nobody");
+    }
 }
 //! [2]
 
@@ -122,7 +128,7 @@ void MainWindow::paintEvent(QPaintEvent *)
         default:painter.setBrush(QColor(211,211,211));break;
     }
     painter.setPen(Qt::black);
-    painter.drawRect(recPlayer);
+    painter.drawRect(currentPlayer.get_rect());
     // draw mobs
 
     for(auto m:mob_list){
@@ -142,6 +148,8 @@ void MainWindow::paintEvent(QPaintEvent *)
 void MainWindow::InitGame()
 {
     IsStart = true;
+    freezeForAttack = false;
+    atkDirection = 0;
     moveDirection = 0;
     lastDirection = 0;
     statusStr = "";
@@ -152,8 +160,6 @@ void MainWindow::InitGame()
     while(mob_list.size()>0)
         mob_list.pop_back(); // clear all the mob
     spawnMob(1);//spawn 1 slime 
-    QRect rect(currentPlayer.get_x(),currentPlayer.get_y(),10,10);
-    recPlayer = rect;
     speed = 50;
     timer = new QTimer(this);
     timer->start(speed); // timer for update
@@ -166,6 +172,7 @@ void MainWindow::game_update()
         voiceover.pop_front();
     // spawn mob if not reach the limit
     spawnByTick();
+    mob_move();
     // if nothing block the player
     int p_x = currentPlayer.get_x();
     int p_y = currentPlayer.get_y();
@@ -178,7 +185,7 @@ void MainWindow::game_update()
         QString thisline = "You ran into a wall.";
         voiceover.push_back(thisline);
     }else if(check_block==2){
-        process_battle();
+        process_battle(moveDirection);
     }
 
     // check mob health(backup)
@@ -216,10 +223,23 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     QKeyEvent *key = (QKeyEvent*)event;
     switch(key->key())
     {
-        case Qt::Key_Up : moveDirection=1;break;
-        case Qt::Key_Down : moveDirection=2;break;
-        case Qt::Key_Left : moveDirection=3;break;
-        case Qt::Key_Right : moveDirection=4;break;
+        case Qt::Key_Up : {
+            moveDirection = 1;
+            atkDirection = 1;
+        }break;
+        case Qt::Key_Down : {
+            moveDirection = 2;
+            atkDirection = 2;
+        }break;
+        case Qt::Key_Left : {
+            moveDirection = 3;
+            atkDirection = 3;
+        }break;
+        case Qt::Key_Right : {
+            moveDirection = 4;
+            atkDirection = 4;
+        }break;
+        case Qt::Key_A : attackifPossible();break;
         case Qt::Key_R :{
             if(IsOver==true){
                 restart();
@@ -316,6 +336,8 @@ int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
         }
     }else{
         //check if run into player
+        if(x==currentPlayer.get_x()&&y==currentPlayer.get_y())
+            return 2;
     }
 
 
@@ -461,11 +483,22 @@ void MainWindow::spawnByTick(){
     }
 }
 
-void MainWindow::process_battle(){
+void MainWindow::attackifPossible(){
+    int p_x = currentPlayer.get_x();
+    int p_y = currentPlayer.get_y();
+    int check_block = isBlock(p_x,p_y,lastDirection,true);
+    if(check_block==2)
+        process_battle(lastDirection);
+    else{
+        QString thisline = "Nothing here to attack.";
+        voiceover.push_back(thisline);
+    }
+}
+void MainWindow::process_battle(int dir){
     int p_x = currentPlayer.get_x();
     int p_y = currentPlayer.get_y();
     mob rabbit = mob("rabbit",0, 1, 0, 1,p_x,p_y); // invisible rabbit: name, class, level, exp, hp, x, y
-    switch(moveDirection){
+    switch(dir){
         case 1:{
             rabbit.set_y(p_y-10);
         }break;
@@ -514,29 +547,21 @@ void MainWindow::player_move(){
     switch(moveDirection){
     case 0: break;
     case 1:{
-        recPlayer.setHeight(recPlayer.height()-10);
-        recPlayer.setTop(recPlayer.top()-10);
         currentPlayer.move(1,10);
         lastDirection = 1;
         step++;
     }break;
     case 2:{
-        recPlayer.setHeight(recPlayer.height()+10);
-        recPlayer.setTop(recPlayer.top()+10);
         currentPlayer.move(2,10);
         lastDirection = 2;
         step++;
     }break;
     case 3:{
-        recPlayer.setLeft(recPlayer.left()-10);
-        recPlayer.setRight(recPlayer.right()-10);
         currentPlayer.move(3,10);
         lastDirection = 3;
         step++;
     }break;
     case 4:{
-        recPlayer.setLeft(recPlayer.left()+10);
-        recPlayer.setRight(recPlayer.right()+10);
         currentPlayer.move(4,10);
         lastDirection = 4;
         step++;
@@ -555,4 +580,19 @@ void MainWindow::player_move(){
         moveDirection = 0;
     }
 
+}
+
+void MainWindow::mob_move(){
+    if(wanderTick<mobWanderTick)
+        wanderTick++;
+    else{
+        wanderTick=0;
+        for(auto &m:mob_list){ // for each mob in mob_list
+            int dir = QRandomGenerator::global()->bounded(1,5);
+            int check_block = isBlock(m.get_x(),m.get_y(),dir,false);
+            if(check_block==0){ // clear to move
+                m.move(dir,10);
+            }
+        }
+    }
 }

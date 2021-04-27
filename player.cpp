@@ -10,6 +10,20 @@ player::player(){
     cash = 0;
     x_pos = 50;
     y_pos = 110;
+    QRect r(x_pos,y_pos,10,10);
+    rec = r;
+}
+player::player(QString n){
+    name = n;
+    p_class = 0;
+    p_level = 1;
+    w_weapon = bbbitem("long_sword", 8,0, 0, 40);
+    b_pack.push_back(w_weapon);
+    cash = 0;
+    x_pos = 50;
+    y_pos = 110;
+    QRect r(x_pos,y_pos,10,10);
+    rec = r;
 }
 
 player::player(QString n,int roleClass, int level, bbbitem wieldWeapon, QVector<bbbitem> backpackItems, int c, int x,int y){
@@ -22,6 +36,8 @@ player::player(QString n,int roleClass, int level, bbbitem wieldWeapon, QVector<
     cash = c;
     x_pos = x;
     y_pos = y;
+    QRect r(x_pos,y_pos,10,10);
+    rec = r;
 }
 
 int player::get_class(){
@@ -35,6 +51,9 @@ int player::get_x(){
 }
 int player::get_y(){
     return y_pos;
+}
+QRect player::get_rect(){
+    return rec;
 }
 int player::get_cash(){
     return cash;
@@ -97,18 +116,26 @@ void player::move(int dir,int dis){
     case 1:{
         y_pos-=dis;
         set_face_dir(1);
+        rec.setHeight(rec.height()-10);
+        rec.setTop(rec.top()-10);
     }break;
     case 2:{
         y_pos+=dis;
         set_face_dir(2);
+        rec.setHeight(rec.height()+10);
+        rec.setTop(rec.top()+10);
     }break;
     case 3:{
         x_pos-=dis;
         set_face_dir(3);
+        rec.setLeft(rec.left()-10);
+        rec.setRight(rec.right()-10);
     }break;
     case 4:{
         x_pos+=dis;
         set_face_dir(4);
+        rec.setLeft(rec.left()+10);
+        rec.setRight(rec.right()+10);
     }break;
     default:break;
     }
