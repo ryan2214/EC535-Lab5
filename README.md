@@ -8,7 +8,19 @@ QT, program is ok to run in the image provided in lab 5.
 
 put map.txt in /root, the program calls map.txt by /root/map.txt
 
-then use ./menus to run.
+On the other hand, if you want to run this in other os, search and change this route in mainwindow.cpp line:75 to the position of map.txt.
+
+If the map.txt is ready in /root, then use ./menus to run.
+
+# command
+
+Press arrow keys to move, press A or arrow keys to attack in facing direction.
+
+For menus bar:
+
+Save is a place holder.
+
+About shows some author information.
 
 # Custom map
 
