@@ -33,11 +33,12 @@ public:
     void move(int dir,int dis);
     void set_face_dir(int dir);
     int get_face_dir();
+    void move_pos(int dir,int dis);
     QRect get_rect();
 
     QVector<bbbitem> get_backpack();
 private:
-    QString name;
+    QString name = "nobody";
     QRect rec;
     int hitpoint = 3;
     int max_hp = 3;

@@ -59,6 +59,7 @@
 #include <QFont>
 #include <QRect>
 #include <QTimer>
+#include <QFile>
 #include "bbbitem.h"
 #include "player.h"
 #include "mob.h"
@@ -95,6 +96,8 @@ public:
     void attackifPossible();
     void player_move();
     void mob_move();
+    void d_map_init(int xscale,int yscale);
+
 protected:
 //! [0]
 
@@ -114,6 +117,12 @@ private:
     QRect recPlayer;
     QRect recTemp;
     QTimer *timer;
+    int map_x = 45;
+    int map_y = 22;
+    int screenXWidth = 470;
+    int screenYWidth = 237;
+    int screenAnchorX = 0;
+    int screenAnchorY = 0;
     bool freezeForAttack = false;
     int atkDirection = 0;
     int moveDirection = 0;
@@ -137,7 +146,7 @@ private:
     player currentPlayer;
     QVector<mob> mob_list;
     QVector<bbbitem> ground_items;
-
+    QVector<QVector<int>> d_map;
 
 //! [3]
 //!

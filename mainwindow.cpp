@@ -49,7 +49,6 @@
 ****************************************************************************/
 
 #include <QtWidgets>
-
 #include "mainwindow.h"
 
 //! [0]
@@ -73,7 +72,26 @@ MainWindow::MainWindow()
     layout->addWidget(bottomFiller);
     widget->setLayout(layout);
 //! [1]
-     // man with a long_sword
+    QFile file("G:/2021SPRING/EC535/EC535-Lab5/map.txt");
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+        QByteArray t = file.readAll();
+        QString raw_map = QString(t);
+        file.close();
+        QStringList list = raw_map.split("p");
+        map_x = list[0].toInt();
+        map_y = list[1].toInt();
+        QString map_content = list[2];
+        auto iter = map_content.begin();
+        d_map_init(map_x,map_y);
+
+        for(int x=0;x<map_x;x++){
+            for(int y=0;y<map_y;y++){
+                if(*iter=='\n')
+                    iter++;
+                d_map[x][y]=(*iter).digitValue();
+            }
+        }
+
 //! [2]
     createActions();
     createMenus();
@@ -82,9 +100,9 @@ MainWindow::MainWindow()
     resize(480,272);
 
     bool bOk = false;
-    username = QInputDialog::getText(this,"QInputdialog_Name","What's your name?",QLineEdit::Normal,"",&bOk);
-    if (bOk && !username.isEmpty()) {
-        currentPlayer = player(username);
+    username = QInputDialog::getText(this,"Name","What's your name?",QLineEdit::Normal,"",&bOk);
+    if (bOk && username!="") {
+        currentPlayer = player(username); // man with a long_sword
     }else if(bOk){
         currentPlayer = player("nobody");
     }
@@ -98,10 +116,10 @@ void MainWindow::paintEvent(QPaintEvent *)
     {
         InitGame();
     }
-    // background
+    // background , always the absolute pos
     painter.setPen(Qt::black);
     painter.setBrush(Qt::black);
-    painter.drawRect(5,30,470,237);
+    painter.drawRect(5,30,screenXWidth,screenYWidth);
     // draw status
     generateStatusStr(); // prepare statusStr
     QFont font2("Courier",10);
@@ -113,13 +131,16 @@ void MainWindow::paintEvent(QPaintEvent *)
     int transparent = 110;
     int voiceover_linepos = voiceover_height;
     for(auto line:voiceover){
-        if(transparent<=170){
-            painter.setPen(QColor(248,248,255,transparent));
-            painter.drawText(10,voiceover_linepos,line);
-            voiceover_linepos+=voiceover_interval;
-            transparent+=30;
-        }
+        painter.setPen(QColor(248,248,255,transparent));
+        painter.drawText(10,voiceover_linepos,line);
+        voiceover_linepos+=voiceover_interval;
+        transparent+=30;
     }
+    QString pos = "X: ";
+    pos.append(QString::number(currentPlayer.get_x()/10));
+    pos.append(" Y: ");
+    pos.append(QString::number(currentPlayer.get_y()/10));
+    painter.drawText(340,voiceover_height,pos);
     // draw player
     switch(currentPlayer.get_class()){
         case 0:painter.setBrush(QColor(255,192,203));break;
@@ -128,16 +149,29 @@ void MainWindow::paintEvent(QPaintEvent *)
         default:painter.setBrush(QColor(211,211,211));break;
     }
     painter.setPen(Qt::black);
-    painter.drawRect(currentPlayer.get_rect());
+    QRect t = currentPlayer.get_rect();
+    t.setHeight(t.height()-screenAnchorY);
+    t.setTop(t.top()-screenAnchorY);
+    t.setLeft(t.left()-screenAnchorX);
+    t.setRight(t.right()-screenAnchorX);
+    painter.drawRect(t);
     // draw mobs
 
     for(auto m:mob_list){
-        switch(m.get_class()){
-        case 1:painter.setBrush(QColor(0,255,0));break;
-        case 2:painter.setBrush(QColor(220,20,60));break;
-        default:painter.setBrush(Qt::red);break;
-        }
-        painter.drawRect(m.get_rect());
+        if(m.get_x()>screenAnchorX&&m.get_x()<screenAnchorX+screenXWidth)
+            if(m.get_y()>screenAnchorY&&m.get_y()<screenAnchorY+screenYWidth){
+                switch(m.get_class()){
+                case 1:painter.setBrush(QColor(0,255,0));break;
+                case 2:painter.setBrush(QColor(220,20,60));break;
+                default:painter.setBrush(Qt::red);break;
+                }
+                QRect t = m.get_rect();
+                t.setHeight(t.height()-screenAnchorY);
+                t.setTop(t.top()-screenAnchorY);
+                t.setLeft(t.left()-screenAnchorX);
+                t.setRight(t.right()-screenAnchorX);
+                painter.drawRect(t);
+            }
     }
     if(IsOver)
     {
@@ -152,11 +186,15 @@ void MainWindow::InitGame()
     atkDirection = 0;
     moveDirection = 0;
     lastDirection = 0;
+    screenAnchorX = 5;
+    screenAnchorY = 30;
+    screenXWidth = 470;
+    screenYWidth = 237;
     statusStr = "";
     consoleMessage = ("Welcome to the bbb world!");
     step = 0;
     voiceover.push_back(consoleMessage);
-    currentPlayer = player();
+    currentPlayer = player(username);
     while(mob_list.size()>0)
         mob_list.pop_back(); // clear all the mob
     spawnMob(1);//spawn 1 slime 
@@ -304,7 +342,8 @@ void MainWindow::createMenus()
 int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
 {
     //check boundary
-
+    int x_limit = 10+10*map_x;
+    int y_limit = 30+10*map_y;
     switch(dir){
     case 1:{
         if(y<=30)
@@ -312,7 +351,7 @@ int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
         y-=10;
     }break;
     case 2:{
-        if(y>=250)
+        if(y>=y_limit)
             return 1;
         y+=10;
     }break;
@@ -322,7 +361,7 @@ int MainWindow::isBlock(int x,int y,int dir,bool isPlayer)
         x-=10;
     }break;
     case 4:{
-        if(x>=460)
+        if(x>=x_limit)
             return 1;
         x+=10;
     }break;
@@ -420,7 +459,15 @@ void MainWindow::restart(){
 }
 
 void MainWindow::generateStatusStr(){
-    statusStr = "Hp: ";
+    statusStr = currentPlayer.get_name();
+    statusStr.append(", the ");
+    switch(currentPlayer.get_class()){
+        //0: Knight  1: Healer  2: Wizard
+        case 0:statusStr.append("Knight");break;
+        case 1:statusStr.append("Healer");break;
+        case 2:statusStr.append("Wizard");break;
+    }
+    statusStr.append(" Hp: ");
     statusStr.append(QString::number(currentPlayer.get_hp()));
     statusStr.append("/");
     statusStr.append(QString::number(currentPlayer.get_maxhp()));
@@ -428,18 +475,15 @@ void MainWindow::generateStatusStr(){
     statusStr.append(QString::number(currentPlayer.get_level()));
     statusStr.append(" Atk: 1d");
     statusStr.append(QString::number(currentPlayer.get_wweapon().get_atk()));
-
+    //statusStr.append(" XA: ");
+    //statusStr.append(QString::number(screenAnchorX));
+    //statusStr.append(" YA: ");
+    //statusStr.append(QString::number(screenAnchorY));
     int bonus_atk = currentPlayer.get_wweapon().get_bonus_atk(); // if weapon have bonus atk
     if(bonus_atk>0){
         statusStr.append("+");
         statusStr.append(QString::number(bonus_atk));
     }
-    //statusStr.append(" X: ");
-    //statusStr.append(QString::number(currentPlayer.get_x()));
-    //statusStr.append(" Y: ");
-    //statusStr.append(QString::number(currentPlayer.get_y()));
-    statusStr.append(" Steps: ");
-    statusStr.append(QString::number(step));
 }
 
 int MainWindow::calculateDistoPlayer(int x, int y){
@@ -544,25 +588,47 @@ void MainWindow::process_battle(int dir){
 }
 
 void MainWindow::player_move(){
+    int x_limit = 10+10*map_x;
+    int y_limit = 30+10*map_y;
     switch(moveDirection){
     case 0: break;
     case 1:{
-        currentPlayer.move(1,10);
+        if(screenAnchorY>10&&currentPlayer.get_y()<=100+screenAnchorY){
+            currentPlayer.move(1,10);
+            screenAnchorY-=10;
+        }else{
+            currentPlayer.move(1,10);
+        }
         lastDirection = 1;
         step++;
     }break;
     case 2:{
-        currentPlayer.move(2,10);
+        if((screenAnchorY+screenYWidth<y_limit)&&(currentPlayer.get_y()>=screenAnchorY+screenYWidth-100)){
+            currentPlayer.move(2,10);
+            screenAnchorY+=10;
+        }else{
+            currentPlayer.move(2,10);
+        }
         lastDirection = 2;
         step++;
     }break;
     case 3:{
-        currentPlayer.move(3,10);
+        if(screenAnchorX>10&&currentPlayer.get_x()<=100+screenAnchorX){
+            currentPlayer.move(3,10);
+            screenAnchorX-=10;
+        }else{
+            currentPlayer.move(3,10);
+        }
         lastDirection = 3;
         step++;
     }break;
     case 4:{
-        currentPlayer.move(4,10);
+        if((screenAnchorX+screenXWidth<x_limit)&&(currentPlayer.get_x()>=screenAnchorX+screenXWidth-100)){
+            currentPlayer.move(4,10);
+            screenAnchorX+=10;
+        }else{
+            currentPlayer.move(4,10);
+        }
         lastDirection = 4;
         step++;
     }break;
@@ -595,4 +661,12 @@ void MainWindow::mob_move(){
             }
         }
     }
+}
+
+void MainWindow::d_map_init(int xscale,int yscale){
+    d_map.resize(xscale);
+    for(int j=0;j<d_map.size();j++){
+           d_map[j].resize(yscale);
+    }
+    // 2D empty vector ready
 }
