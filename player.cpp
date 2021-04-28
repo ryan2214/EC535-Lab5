@@ -103,7 +103,7 @@ int player::get_maxhp(){
 void player::pick_up_item(bbbitem i){
     b_pack.push_back(i);
 }
-void player::weild_weapon(bbbitem w){
+void player::wield_weapon(bbbitem w){
     w_weapon = w;
 }
 int player::get_atk(){

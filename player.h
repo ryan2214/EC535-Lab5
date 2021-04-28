@@ -25,7 +25,7 @@ public:
     int get_hp();
     int get_maxhp();
     void pick_up_item(bbbitem i);
-    void weild_weapon(bbbitem w);
+    void wield_weapon(bbbitem w);
     bbbitem get_wweapon();
     int get_atk(); // read from w_weapon's attr
     int get_bonus_atk();
