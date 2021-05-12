@@ -1,5 +1,5 @@
 # EC535-Lab5
-game on bbb
+nethack game on bbb
 
 # library
 QT, program is ok to run in the image provided in lab 5.
